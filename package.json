@@ -1,0 +1,94 @@
+{
+  "name": "autosubsco",
+  "version": "0.11.0",
+  "private": true,
+  "description": "Editor local para Windows con montaje multimedia, títulos, audio y subtítulos automáticos.",
+  "type": "module",
+  "main": "electron/app.mjs",
+  "author": "edwincsabo",
+  "scripts": {
+    "start": "electron .",
+    "setup": "node scripts/setup.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:media": "node scripts/verify-v2.mjs",
+    "test:ui": "node scripts/verify-ui.mjs",
+    "test:v2": "node scripts/verify-v2.mjs",
+    "test:editor": "node scripts/verify-editor-ui.mjs",
+    "test:fallback": "node scripts/verify-fallback.mjs",
+    "test:text-ui": "node scripts/verify-text-cut-ui.mjs",
+    "test:text-media": "node scripts/verify-text-cut-media.mjs",
+    "test:audio-ui": "node scripts/verify-audio-ui.mjs",
+    "test:audio-media": "node scripts/verify-audio-media.mjs",
+    "test:precision-ui": "node scripts/verify-precision-ui.mjs",
+    "test:precision-media": "node scripts/verify-precision-media.mjs",
+    "test:studio": "node scripts/verify-studio-processing.mjs",
+    "test:studio-ui": "node scripts/verify-studio-ui.mjs",
+    "test:studio-render": "node scripts/verify-studio-render.mjs && node scripts/verify-motion-render.mjs",
+    "package:signed": "node scripts/package-signed.mjs",
+    "package": "electron-builder --win portable --x64",
+    "test:layout": "node scripts/verify-layout-ui.mjs",
+    "test:projects": "node scripts/verify-projects-ui.mjs",
+    "test:alignment-ui": "node scripts/verify-alignment-ui.mjs",
+    "test:alignment-media": "node scripts/verify-alignment-media.mjs",
+    "test:alignment-core": "tools/python/python.exe -m unittest discover -s tests -p alignment_worker_test.py",
+    "test:replace-ui": "node scripts/verify-find-replace-ui.mjs",
+    "test:graphics": "node scripts/verify-graphics-ui.mjs"
+  },
+  "devDependencies": {
+    "electron": "44.9.0",
+    "electron-builder": "26.15.3",
+    "playwright-core": "1.56.1"
+  },
+  "build": {
+    "appId": "co.autosubs.desktop",
+    "productName": "AutoSubsCO",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**",
+      "src/**",
+      "ui/**",
+      "package.json",
+      "README.md",
+      "docs/**",
+      "THIRD_PARTY_NOTICES.md",
+      "licenses/**",
+      "LICENSE",
+      "NOTICE",
+      "USO_NO_COMERCIAL.md"
+    ],
+    "extraResources": [
+      {
+        "from": "tools",
+        "to": "tools",
+        "filter": [
+          "**/*",
+          "!whisper-bin-x64.zip",
+          "!python-3.12.10-embed-amd64.zip",
+          "!**/*.part",
+          "!**/__pycache__/**",
+          "!python/get-pip.py"
+        ]
+      }
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "build/icon.ico",
+      "signExecutable": false
+    },
+    "portable": {
+      "artifactName": "AutoSubsCO-${version}-Windows.exe"
+    }
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/edwincsabo/AutoSubsCO.git"
+  },
+  "homepage": "https://github.com/edwincsabo/AutoSubsCO#readme",
+  "bugs": {
+    "url": "https://github.com/edwincsabo/AutoSubsCO/issues"
+  }
+}

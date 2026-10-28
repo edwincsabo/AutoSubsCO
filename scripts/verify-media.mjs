@@ -1,0 +1,40 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
+import { discoverTools } from '../src/tools.mjs';
+import { run } from '../src/process.mjs';
+import { probe, transcribe, exportVideo } from '../src/media.mjs';
+import { createProject, visibleCues, validateProject } from '../src/project.mjs';
+import { srt, vtt, ass } from '../src/subtitles.mjs';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const out = path.join(root, 'test-results'); await fs.mkdir(out, { recursive: true });
+const tools = await discoverTools(root), source = path.join(out, 'fixtures', 'jfk.wav');
+await fs.access(source);
+const video = path.join(out, 'muestra-voz.mp4');
+await run(tools.ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'color=c=0x232739:s=1280x720:r=30', '-i', source,
+  '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', video]);
+const p = createProject(await probe(video, tools)), started = Date.now();
+const result = await transcribe(p, { tools, modelRoot: path.join(root, 'models'), jobsRoot: path.join(out, 'jobs'), model: 'base', language: 'en', progress: p => console.log(JSON.stringify(p)) });
+assert.ok(result.cues.length > 0, 'No se generaron subtítulos');
+assert.match(result.cues.map(c => c.text).join(' '), /country/i);
+await fs.writeFile(path.join(out, 'demo.autosubsco.json'), JSON.stringify(result, null, 2));
+const clip = result.timeline.clips[0]; clip.sourceIn = 1; clip.sourceOut = Math.min(9, result.media.duration);
+const trimmed = validateProject(result), cues = visibleCues(trimmed);
+assert.ok(cues.every(c => c.start >= 0 && c.end <= clip.sourceOut - clip.sourceIn));
+await fs.writeFile(path.join(out, 'demo.srt'), srt(cues)); await fs.writeFile(path.join(out, 'demo.vtt'), vtt(cues)); await fs.writeFile(path.join(out, 'demo.ass'), ass(cues, result.style, result.media.width, result.media.height));
+const burned = path.join(out, 'demo-subtitulado.mp4'), soft = path.join(out, 'demo-pista.mp4');
+await exportVideo(trimmed, burned, { tools, jobsRoot: path.join(out, 'jobs') });
+await exportVideo(trimmed, soft, { tools, jobsRoot: path.join(out, 'jobs'), mode: 'soft' });
+const info = await probe(burned, tools); assert.ok(Math.abs(info.duration - (clip.sourceOut - clip.sourceIn)) < .25);
+const softProbe = JSON.parse((await run(tools.ffprobe, ['-v', 'error', '-show_streams', '-of', 'json', soft])).stdout);
+assert.ok(softProbe.streams.some(s => s.codec_name === 'mov_text'));
+await run(tools.ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'error', '-y', '-ss', '3', '-i', burned, '-frames:v', '1', path.join(out, '03-render.png')]);
+const cancellation = new AbortController();
+const running = run(tools.ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'error', '-re', '-f', 'lavfi', '-i', 'color=s=64x64:r=30', '-f', 'null', '-'], { signal: cancellation.signal });
+setTimeout(() => cancellation.abort(), 350);
+await assert.rejects(running, /cancelada/i);
+const summary = { passed: true, fixture: 'whisper.cpp b5454 samples/jfk.wav (inglés, voz humana pública)', engine: result.transcription,
+  sourceDuration: result.media.duration, cues: result.cues.length, exportedDuration: info.duration, softSubtitles: true, cancellation: true,
+  elapsedSeconds: (Date.now() - started) / 1000, spanishQuality: 'Esta muestra inglesa no evalúa español; véase user-video-verification.json', gpu: 'No utilizada; compilación CPU' };
+await fs.writeFile(path.join(out, 'media-verification.json'), JSON.stringify(summary, null, 2)); console.log(JSON.stringify(summary, null, 2));

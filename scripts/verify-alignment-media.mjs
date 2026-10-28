@@ -1,0 +1,44 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+import {discoverTools} from '../src/tools.mjs';
+import {run} from '../src/process.mjs';
+import {probe} from '../src/media.mjs';
+import {createProject,validateProject} from '../src/project.mjs';
+import {prepareAlignment,applyAlignment,publicAlignment} from '../src/alignment.mjs';
+import {reliableWords,transcriptTokens} from '../src/text-cut-model.mjs';
+import {ProjectHistory} from '../src/history.mjs';
+import {ass} from '../src/subtitles.mjs';
+import {exportSequence} from '../src/sequence.mjs';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),out=path.join(root,'test-results','v9'),tools=await discoverTools(root),jobsRoot=path.join(out,'alignment-jobs');
+await fs.mkdir(out,{recursive:true});
+const reference=JSON.parse(await fs.readFile(path.join(out,'voz-espanol-reference.json'),'utf8')),source=path.join(out,'alignment-source.mp4');
+await run(tools.ffmpeg,['-hide_banner','-nostdin','-loglevel','error','-y','-f','lavfi','-i','color=c=0x273351:s=640x360:r=30:d=14','-i',path.join(out,'voz-espanol.wav'),'-filter_complex','[1:a]adelay=1200:all=1,apad,atrim=duration=14[a]','-map','0:v:0','-map','[a]','-c:v','libx264','-preset','ultrafast','-pix_fmt','yuv420p','-c:a','aac','-t','14',source]);
+const p=createProject(await probe(source,tools));p.timeline.clips[0].sourceIn=1;p.timeline.clips[0].sourceOut=12.5;p.timeline.clips[0].timelineStart=.7;p.exportRange={start:0,end:12.2};
+const translation={text:'Hello Colombia. Today we will correct the subtitles of our video. Music fades while the person speaks.',sourceText:reference.text,from:'manual'};
+p.cues=[{id:'voice',clipId:p.timeline.clips[0].id,start:.7,end:9.7,text:reference.text,words:[],translations:{en:translation}},
+ {id:'wrong',start:.7,end:9.7,text:'La luna es de chocolate azul y los árboles cantan en otro planeta.',words:[]},
+ {id:'digits',start:1,end:3,text:'2026',words:[]},
+ {id:'silence',start:10.1,end:11.3,text:'Aquí nadie está hablando',words:[]}];
+const original=validateProject(p),before=JSON.stringify(original),common={tools,modelRoot:path.join(root,'models'),jobsRoot};
+await fs.writeFile(path.join(out,'alignment-source.autosubsco.json'),JSON.stringify(original,null,2));
+const options={scope:'cue',cueId:'voice',language:'es',acceleration:'cpu'},plan=await prepareAlignment(original,options,common);
+assert.equal(JSON.stringify(original),before);assert.equal(plan.rows[0].status,'aligned');
+const accepted=applyAlignment(original,plan,plan.id,['voice']);assert.equal(accepted.cues[0].text,reference.text);assert.equal(accepted.cues[0].start,.7);assert.equal(accepted.cues[0].end,9.7);assert.deepEqual(accepted.cues[0].translations,original.cues[0].translations);assert.deepEqual(accepted.timeline,original.timeline);assert.equal(reliableWords(accepted.cues[0]),true);
+const points=[...reference.points].sort((a,b)=>a.character-b.character),errors=accepted.cues[0].words.map((w,i)=>Math.abs(w.start-(points[i].start+.9)));
+assert.equal(errors.length,points.length);const ordered=[...errors].sort((a,b)=>a-b),median=ordered[Math.floor(ordered.length/2)],maximum=Math.max(...errors);assert.ok(median<.18&&maximum<.4,'Las marcas se apartan de la referencia controlada');
+assert.ok(accepted.cues[0].words[2].start-accepted.cues[0].words[1].end>.8,'Se conserva la pausa entre frases');
+const range=await prepareAlignment(original,{scope:'range',language:'es',acceleration:'cpu'},common);assert.equal(range.rows.find(r=>r.cueId==='voice').status,'aligned');assert.equal(range.rows.find(r=>r.cueId==='digits').status,'unsupported');assert.equal(range.rows.find(r=>r.cueId==='silence').status,'no_audio');assert.equal(range.rows.find(r=>r.cueId==='wrong').status,'review');
+assert.throws(()=>applyAlignment(original,range,range.id,['wrong']),/propuesta/);assert.throws(()=>applyAlignment({...original,name:'Cambió'},plan,plan.id,['voice']),/cambió/);
+const history=new ProjectHistory(),committed=history.push(original,accepted,{label:'Realinear subtítulos'});assert.deepEqual(history.undo(committed),original);assert.deepEqual(history.redo(original),accepted);
+const gpu=await prepareAlignment(original,{...options,acceleration:'gpu'},common);assert.equal(gpu.rows[0].status,'aligned');assert.ok(['CPUExecutionProvider','DmlExecutionProvider'].includes(gpu.provider));
+const controller=new AbortController(),prior=new Set(await fs.readdir(jobsRoot));await assert.rejects(prepareAlignment(original,options,{...common,signal:controller.signal,progress:p=>{if(p.stage==='model')controller.abort();}}),/cancelada/);assert.equal(JSON.stringify(original),before);for(const folder of await fs.readdir(jobsRoot))if(!prior.has(folder))await assert.rejects(fs.stat(path.join(jobsRoot,folder,'audio.wav')),e=>e.code==='ENOENT');
+const render=structuredClone(accepted);render.cues=[render.cues[0]];render.style.karaoke=true;render.style.fontSize=24;render.style.outlineWidth=1.5;
+const displayWords=render.cues[0].text.split(/\s+/);render.cues[0].text=[displayWords.slice(0,6),displayWords.slice(6,12),displayWords.slice(12)].map(words=>words.join(' ')).join('\n');
+const styled=ass(render.cues,render.style,640,360),transitions=[...styled.matchAll(/\\t\((\d+),(\d+),\\1c/g)];assert.equal(transitions.length,render.cues[0].words.length*2);assert.ok(Math.abs(Number(transitions[0][1])-(render.cues[0].words[0].start-render.cues[0].start)*1000)<2);await fs.writeFile(path.join(out,'alignment-result.ass'),styled);
+const exported=await exportSequence(render,path.join(out,'alignment-result.mp4'),{tools,jobsRoot,mode:'burn'});const info=await probe(exported.path,tools);assert.ok(Math.abs(info.duration-12.2)<.06);assert.ok(transcriptTokens(accepted).filter(t=>t.cueId==='voice'&&t.kind==='word').length===18);
+await fs.writeFile(path.join(out,'alignment-result.autosubsco.json'),JSON.stringify(accepted,null,2));
+await run(tools.ffmpeg,['-hide_banner','-nostdin','-loglevel','error','-y','-ss','2.85','-i',exported.path,'-frames:v','1',path.join(out,'alignment-render.png')]);
+const report={passed:true,development:true,reference:reference.provenance,referenceVoice:reference.voice,words:errors.length,medianOnsetErrorSeconds:median,maximumOnsetErrorSeconds:maximum,sourceTrimAndTimelineOffset:.9,pausePreserved:true,textAndTranslationsPreserved:true,proposalNonDestructive:true,lowAgreementRejected:true,digitsNotInvented:true,silenceRejected:true,undoRedo:true,stalePlanRejected:true,cpu:true,gpu:{requested:'gpu',provider:gpu.provider,fallback:gpu.fallback},cancellation:true,temporaryAudioRemoved:true,karaokeAss:true,videoExport:true,textCutsWordSelection:true,limitations:'Referencia sintética con eventos de Windows, no medición general de exactitud de voz humana o canto.'};
+await fs.writeFile(path.join(out,'alignment-media-verification.json'),JSON.stringify(report,null,2));await fs.writeFile(path.join(out,'alignment-range-proposal.json'),JSON.stringify(publicAlignment(range),null,2));console.log(JSON.stringify(report,null,2));

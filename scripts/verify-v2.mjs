@@ -1,0 +1,27 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+import {discoverTools} from '../src/tools.mjs';
+import {probe,waveform} from '../src/media.mjs';
+import {createProject,addMedia,editClip,setPreset,validateProject,replaceRange} from '../src/project.mjs';
+import {transcribeProject,compareModels} from '../src/asr.mjs';
+import {exportSequence} from '../src/sequence.mjs';
+import {detectHardware} from '../src/hardware.mjs';
+import {run} from '../src/process.mjs';
+import {ass} from '../src/subtitles.mjs';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const out=path.join(root,'test-results','v2');await fs.mkdir(out,{recursive:true});const tools=await discoverTools(root),hardware=await detectHardware(tools),jobsRoot=path.join(out,'jobs'),modelRoot=path.join(root,'models');
+const fixture=path.join(root,'test-results','muestra-voz.mp4'),media=await probe(fixture,tools);let p=createProject(media);
+const progress=v=>{if(v.stage==='verify'||v.stage==='done'||v.stage==='fallback')console.log(v.message);};
+const common={tools,modelRoot,jobsRoot,language:'en',align:true,acceleration:'cpu',progress};
+const comparison=await compareModels(p,{...common,models:['small','orukeet'],reference:'And so my fellow Americans ask not what your country can do for you ask what you can do for your country'});assert.ok(comparison.results.every(r=>r.cues.length&&r.cues.some(c=>c.words.length)));assert.ok(comparison.results.every(r=>r.wer!==null));await fs.writeFile(path.join(out,'comparison.json'),JSON.stringify(comparison,null,2));
+const gpu=await transcribeProject(p,{...common,model:'parakeet',acceleration:'gpu'});assert.ok(gpu.cues.length>0);await fs.writeFile(path.join(out,'parakeet-gpu.json'),JSON.stringify(gpu,null,2));
+const turbo=await transcribeProject(p,{...common,model:'large-v3-turbo'});assert.ok(turbo.cues.length>0);await fs.writeFile(path.join(out,'whisper-turbo.json'),JSON.stringify(turbo,null,2));
+p=validateProject({...p,cues:comparison.results[0].cues,transcription:comparison.results[0].transcription});const firstId=p.timeline.clips[0].id;p=editClip(p,firstId,{sourceIn:0,sourceOut:3});p=addMedia(p,{...media,id:'second-fixture'});const secondId=p.timeline.clips.find(c=>c.mediaId==='second-fixture').id;p=editClip(p,secondId,{sourceIn:7,sourceOut:10});p=addMedia(p,{...media,id:'additional-audio'},{audio:true});p=editClip(p,p.timeline.clips.find(c=>c.mediaId==='additional-audio').id,{sourceIn:0,sourceOut:3,timelineStart:1,volume:.15});p.style.karaoke=true;await fs.writeFile(path.join(out,'sequence.autosubsco.json'),JSON.stringify(p,null,2));
+const renders=[];for(const preset of ['horizontal','vertical','square']){const variant=setPreset(p,preset,30),dest=path.join(out,preset+'.mp4');const r=await exportSequence(variant,dest,{tools,jobsRoot,mode:'burn',acceleration:preset==='square'?'gpu':'cpu',hardware,progress});const info=await probe(dest,tools);assert.equal(info.width,variant.sequence.width);assert.equal(info.height,variant.sequence.height);assert.ok(Math.abs(info.duration-6)<.15);renders.push({preset,path:dest,width:info.width,height:info.height,encoder:r.encoder,fallback:r.fallback});}
+const soft=path.join(out,'soft.mp4');await exportSequence(p,soft,{tools,jobsRoot,mode:'soft'});const softInfo=JSON.parse((await run(tools.ffprobe,['-v','error','-show_streams','-of','json',soft])).stdout);assert.ok(softInfo.streams.some(s=>s.codec_name==='mov_text'));
+const before=p.cues.filter(c=>c.start<2).map(c=>c.id);const partial=await transcribeProject(p,{...common,model:'orukeet',range:{start:3,end:6}});assert.ok(before.every(id=>partial.cues.some(c=>c.id===id)));
+const peaks=await waveform(fixture,tools,path.join(out,'waveforms'));assert.ok(peaks.length>20&&peaks.some(v=>v>.2));
+const styled=ass([{start:0,end:2,text:'Hola\nColombia',words:[{text:'Hola',start:0,end:1},{text:'Colombia',start:1,end:2}]}],p.style);assert.ok(styled.includes('{\\rDefault'));assert.ok(styled.includes('\\N'));
+const report={passed:true,hardware,models:comparison.results.map(r=>({model:r.model,provider:r.transcription.provider,words:r.cues.reduce((a,c)=>a+c.words.length,0),wer:r.wer,seconds:r.transcription.totalSeconds})),parakeetGpu:gpu.transcription,turbo:turbo.transcription,renders,softSubtitles:true,partialRetranscription:true,mixedAudio:true,waveform:true,limitations:'Pruebas funcionales y una referencia inglesa; no representan un benchmark de español colombiano.'};await fs.writeFile(path.join(out,'verification.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));

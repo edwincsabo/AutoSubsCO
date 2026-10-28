@@ -1,0 +1,20 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {createWriteStream} from 'node:fs';
+import {randomUUID} from 'node:crypto';
+import {Readable,Transform} from 'node:stream';
+import {pipeline} from 'node:stream/promises';
+import catalog from './studio-resources.json' with {type:'json'};
+import {hashFile} from './models.mjs';
+import {run} from './process.mjs';
+export const STUDIO_RESOURCES=catalog;
+const verified=new Set();
+export async function listResources(modelRoot){return Promise.all(catalog.map(async r=>({...r,installed:(await Promise.all(r.files.map(f=>fs.stat(path.join(modelRoot,'resources',r.id,f.path)).then(s=>s.size===f.size).catch(()=>false)))).every(Boolean)})));}
+export async function verifyResource(modelRoot,id,signal){const resource=catalog.find(r=>r.id===id);if(!resource)throw new Error('Recurso no permitido.');const root=path.join(modelRoot,'resources',id);for(const f of resource.files){if(signal?.aborted)throw new Error('Operación cancelada.');const file=path.join(root,f.path),stat=await fs.stat(file).catch(()=>null);if(stat?.size!==f.size)throw new Error(`Descarga ${resource.name} para continuar.`);const key=`${file}:${stat.size}:${stat.mtimeMs}`;if(!verified.has(key)){if(await hashFile(file)!==f.sha256)throw new Error(`Recurso dañado: ${resource.name}. Vuelve a descargarlo.`);verified.add(key);}}return root;}
+export async function downloadResource(modelRoot,id,{tools,signal,progress=()=>{}}={}){
+ const r=catalog.find(r=>r.id===id);if(!r)throw new Error('Recurso no permitido.');if(!tools.python||!tools.studioExtractor)throw new Error('Falta el runtime de estudio.');const parent=path.join(modelRoot,'resources');await fs.mkdir(parent,{recursive:true});const token=randomUUID(),stage=path.join(parent,'.studio-'+token);await fs.mkdir(stage);await fs.writeFile(path.join(stage,'.owner'),token);let loaded=0;const total=r.parts.reduce((n,p)=>n+p.size,0);
+ try{for(let i=0;i<r.parts.length;i++){const p=r.parts[i],archive=path.join(stage,`part-${i}.archive`),response=await fetch(p.url,{signal});if(!response.ok)throw new Error(`Descarga HTTP ${response.status}`);let count=0,last=0;const meter=new Transform({transform(chunk,_,cb){count+=chunk.length;if(Date.now()-last>200){last=Date.now();progress({stage:'download',message:`Descargando ${r.name}`,percent:Math.min(98,(loaded+count)/total*100)});}cb(null,chunk);}});await pipeline(Readable.fromWeb(response.body),meter,createWriteStream(archive),{signal});if(count!==p.size||await hashFile(archive)!==p.sha256)throw new Error('La descarga no coincide con el hash del recurso.');const folder=path.join(stage,'content',p.folder);await fs.mkdir(folder,{recursive:true});if(p.kind==='file')await fs.copyFile(archive,path.join(folder,p.dest));else await run(tools.python,[tools.studioExtractor,archive,folder,p.kind],{signal});loaded+=count;}
+ const destination=path.join(parent,id);for(const f of r.files){const source=path.join(stage,'content',f.path);if((await fs.stat(source)).size!==f.size||await hashFile(source)!==f.sha256)throw new Error('El contenido del modelo no coincide con el catálogo.');const target=path.join(destination,f.path);await fs.mkdir(path.dirname(target),{recursive:true});const temp=target+'.'+token+'.part';await fs.copyFile(source,temp);await fs.rename(temp,target);}progress({stage:'done',message:`${r.name} preparado`,percent:100});return listResources(modelRoot);
+ }finally{const realParent=await fs.realpath(parent),realStage=await fs.realpath(stage).catch(()=>null);if(realStage&&path.dirname(realStage)===realParent&&await fs.readFile(path.join(stage,'.owner'),'utf8').catch(()=>null)===token)await fs.rm(realStage,{recursive:true,force:true});}
+}
+export function translationRoute(from,to){if(!['es','en','pt','fr'].includes(from)||!['es','en','pt','fr'].includes(to)||from===to)throw new Error('Elige idiomas distintos entre español, inglés, portugués y francés.');const direct=`translation-${from}-${to}`;return catalog.some(r=>r.id===direct)?[direct]:[`translation-${from}-en`,`translation-en-${to}`];}

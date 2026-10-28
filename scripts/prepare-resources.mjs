@@ -1,0 +1,17 @@
+import fs from 'node:fs/promises';
+import {createWriteStream} from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {Readable} from 'node:stream';
+import {pipeline} from 'node:stream/promises';
+import {spawnSync} from 'node:child_process';
+import {hashFile} from '../src/models.mjs';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),base=path.join(root,'models','resources'),cache=path.join(root,'models','resource-archives');await fs.mkdir(base,{recursive:true});await fs.mkdir(cache,{recursive:true});
+const prefix='https://github.com/k2-fsa/sherpa-onnx/releases/download/';
+const seeds=[{id:'separation',name:'Separación de voz y música',license:'MIT — Spleeter/Deezer',source:'https://github.com/deezer/spleeter',parts:[{url:prefix+'source-separation-models/sherpa-onnx-spleeter-2stems-fp16.tar.bz2',kind:'spleeter',folder:''}]},{id:'speakers',name:'Análisis de hablantes',license:'Modelos Pyannote y WeSpeaker; conservar términos upstream',source:'https://k2-fsa.github.io/sherpa/onnx/speaker-diarization/',parts:[{url:prefix+'speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2',kind:'segmentation',folder:'segmentation'},{url:prefix+'speaker-recongition-models/wespeaker_en_voxceleb_resnet34_LM.onnx',kind:'file',folder:'',dest:'embedding.onnx'}]}];
+const index=JSON.parse(await fs.readFile(path.join(root,'evidence','references-0.3','argos-index.json'),'utf8'));
+for(const [from,to]of [['es','en'],['en','es'],['en','pt'],['pt','en'],['en','fr'],['fr','en']]){const item=index.find(m=>m.from_code===from&&m.to_code===to);seeds.push({id:`translation-${from}-${to}`,name:`Traducción ${from} → ${to}`,from,to,license:'Ver licencia y avisos incluidos en el paquete Argos',source:'https://github.com/argosopentech/argospm-index',parts:[{url:item.links[0],kind:'translation',folder:''}]});}
+async function inventory(dir,prefix=''){let out=[];for(const d of await fs.readdir(dir,{withFileTypes:true})){const rel=prefix+d.name,file=path.join(dir,d.name);if(d.isDirectory())out.push(...await inventory(file,rel+'/'));else out.push({path:rel,size:(await fs.stat(file)).size,sha256:await hashFile(file)});}return out;}
+for(const seed of seeds){const dir=path.join(base,seed.id);await fs.mkdir(dir,{recursive:true});console.log('Preparando '+seed.name);for(let i=0;i<seed.parts.length;i++){const part=seed.parts[i],file=path.join(cache,seed.id+'-'+i+path.extname(new URL(part.url).pathname));if(!await fs.stat(file).catch(()=>null)){const response=await fetch(part.url);if(!response.ok)throw new Error(part.url+' '+response.status);await pipeline(Readable.fromWeb(response.body),createWriteStream(file+'.part'));await fs.rename(file+'.part',file);}part.sha256=await hashFile(file);part.size=(await fs.stat(file)).size;const dest=path.join(dir,part.folder);await fs.mkdir(dest,{recursive:true});if(part.kind==='file')await fs.copyFile(file,path.join(dest,part.dest));else{const result=spawnSync(path.join(root,'tools','python','python.exe'),[path.join(root,'tools','studio','extract_resource.py'),file,dest,part.kind],{windowsHide:true,encoding:'utf8'});if(result.status!==0)throw new Error(result.stderr);}}
+seed.files=await inventory(dir);seed.size=seed.files.reduce((n,f)=>n+f.size,0);seed.archiveVerification='SHA-256 observado en adquisición HTTPS y fijado para siguientes descargas';await fs.writeFile(path.join(root,'src','studio-resources.json'),JSON.stringify(seeds.filter(s=>s.files),null,2));}
+console.log('Recursos preparados: '+seeds.length);

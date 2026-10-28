@@ -1,0 +1,472 @@
+[
+  {
+    "id": "separation",
+    "name": "Separación de voz y música",
+    "license": "MIT — Spleeter/Deezer",
+    "source": "https://github.com/deezer/spleeter",
+    "parts": [
+      {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/source-separation-models/sherpa-onnx-spleeter-2stems-fp16.tar.bz2",
+        "kind": "spleeter",
+        "folder": "",
+        "sha256": "d54561979bd2e08a51e7dbd99ac36bb47564e089eefd403636dbca93e811bba2",
+        "size": 35271738
+      }
+    ],
+    "files": [
+      {
+        "path": "accompaniment.fp16.onnx",
+        "size": 19681024,
+        "sha256": "d14cea55793cc531a5875f5f4da08207d1c5ab9292e8e0099a104eecb014fcc0"
+      },
+      {
+        "path": "vocals.fp16.onnx",
+        "size": 19681017,
+        "sha256": "24cef84aedcd1fe87c0b743ef3370ad34dc1fabf6c9014d6128a75a538c7b668"
+      }
+    ],
+    "size": 39362041,
+    "archiveVerification": "SHA-256 observado en adquisición HTTPS y fijado para siguientes descargas"
+  },
+  {
+    "id": "speakers",
+    "name": "Análisis de hablantes",
+    "license": "Modelos Pyannote y WeSpeaker; conservar términos upstream",
+    "source": "https://k2-fsa.github.io/sherpa/onnx/speaker-diarization/",
+    "parts": [
+      {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2",
+        "kind": "segmentation",
+        "folder": "segmentation",
+        "sha256": "24615ee884c897d9d2ba09bb4d30da6bb1b15e685065962db5b02e76e4996488",
+        "size": 6958444
+      },
+      {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/wespeaker_en_voxceleb_resnet34_LM.onnx",
+        "kind": "file",
+        "folder": "",
+        "dest": "embedding.onnx",
+        "sha256": "e9848563da86f263117134dfd7ad63c92355b37de492b55e325400c9d9c39012",
+        "size": 26530550
+      }
+    ],
+    "files": [
+      {
+        "path": "embedding.onnx",
+        "size": 26530550,
+        "sha256": "e9848563da86f263117134dfd7ad63c92355b37de492b55e325400c9d9c39012"
+      },
+      {
+        "path": "segmentation/LICENSE",
+        "size": 1061,
+        "sha256": "14d7016ad68e7394d6e6b78d96cc2ae431c905287b89674cfdf021e79e62b8ba"
+      },
+      {
+        "path": "segmentation/model.onnx",
+        "size": 5992913,
+        "sha256": "220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079"
+      },
+      {
+        "path": "segmentation/README.md",
+        "size": 115,
+        "sha256": "0380ed76a50efcc421dc62f251ed06e8349688466beac3177bee6e00dc336bfc"
+      }
+    ],
+    "size": 32524639,
+    "archiveVerification": "SHA-256 observado en adquisición HTTPS y fijado para siguientes descargas"
+  },
+  {
+    "id": "translation-es-en",
+    "name": "Traducción es → en",
+    "from": "es",
+    "to": "en",
+    "license": "Ver licencia y avisos incluidos en el paquete Argos",
+    "source": "https://github.com/argosopentech/argospm-index",
+    "parts": [
+      {
+        "url": "https://argos-net.com/v1/translate-es_en-1_9.argosmodel",
+        "kind": "translation",
+        "folder": "",
+        "sha256": "c54df2b62fceaf54a3ce5d97db6bf56efd7940063329f6778f4212d2acb370d4",
+        "size": 285208831
+      }
+    ],
+    "files": [
+      {
+        "path": "bpe.model",
+        "size": 362679,
+        "sha256": "567708133d5a722ac57c1431f9490904d9bcacd85134778e34ca2f901855855e"
+      },
+      {
+        "path": "metadata.json",
+        "size": 161,
+        "sha256": "976bb0aafb1142b7f2936ed2becad224b47aef619685fb8b17faab81080cc725"
+      },
+      {
+        "path": "model/config.json",
+        "size": 221,
+        "sha256": "152eb448f1020eb55f90971d7b95f61896abee8415d555ca51ae7897ac0a0e68"
+      },
+      {
+        "path": "model/model.bin",
+        "size": 314139617,
+        "sha256": "3c634f2fbfce11ba9c3db839db50079c08d3cdb12c74f2c21671f742dbbb30f1"
+      },
+      {
+        "path": "model/shared_vocabulary.json",
+        "size": 864016,
+        "sha256": "8ba15845314c1291fad86b0bf52b4a8a5db2a2f01b898c8c44d9e21e896a041f"
+      },
+      {
+        "path": "README.md",
+        "size": 394,
+        "sha256": "ca784d58b3fe81e557774db5ae33c4278bd6cfe64a43a6aa7301cce062b201c6"
+      }
+    ],
+    "size": 315367088,
+    "archiveVerification": "SHA-256 observado en adquisición HTTPS y fijado para siguientes descargas"
+  },
+  {
+    "id": "translation-en-es",
+    "name": "Traducción en → es",
+    "from": "en",
+    "to": "es",
+    "license": "Ver licencia y avisos incluidos en el paquete Argos",
+    "source": "https://github.com/argosopentech/argospm-index",
+    "parts": [
+      {
+        "url": "https://argos-net.com/v1/translate-en_es-1_0.argosmodel",
+        "kind": "translation",
+        "folder": "",
+        "sha256": "d698d0ef87ad70d5d184b7fa6965905bf4368f09a2bb9ffb165a79bac96af0c4",
+        "size": 87503191
+      }
+    ],
+    "files": [
+      {
+        "path": "metadata.json",
+        "size": 159,
+        "sha256": "d3360ebfd9b5458b84d7c75d078e379541e4f2ce009bca84f20f360572547bbd"
+      },
+      {
+        "path": "model/model.bin",
+        "size": 94392546,
+        "sha256": "d5771f823c9dd7eedcf9367c116aede65613a194f761a81826351e2bccb194c4"
+      },
+      {
+        "path": "model/shared_vocabulary.txt",
+        "size": 301928,
+        "sha256": "e03caf337f37b61d2e056b9cfbc5551a0c8ae7555541fba14c067d4574db1132"
+      },
+      {
+        "path": "README.md",
+        "size": 339,
+        "sha256": "cd8423493ed8817466822957d8c95070b5b4cc87eb122f06d60e7e31f138a3cf"
+      },
+      {
+        "path": "sentencepiece.model",
+        "size": 795667,
+        "sha256": "71790fd75854ce996bc9f7da40fb72af41b74296d53fee64bce141967e8e81b1"
+      }
+    ],
+    "size": 95490639,
+    "archiveVerification": "SHA-256 observado en adquisición HTTPS y fijado para siguientes descargas"
+  },
+  {
+    "id": "translation-en-pt",
+    "name": "Traducción en → pt",
+    "from": "en",
+    "to": "pt",
+    "license": "Ver licencia y avisos incluidos en el paquete Argos",
+    "source": "https://github.com/argosopentech/argospm-index",
+    "parts": [
+      {
+        "url": "https://argos-net.com/v1/translate-en_pt-1_9.argosmodel",
+        "kind": "translation",
+        "folder": "",
+        "sha256": "0c5350a2fa5b923de1346edc0d42e08e38bab2e33cede3a0b9a48eb4281ad8a9",
+        "size": 66179184
+      }
+    ],
+    "files": [
+      {
+        "path": "metadata.json",
+        "size": 136,
+        "sha256": "329352766986eb1cd03617f099293a587c24d37f13abca854c7693a73f4168b7"
+      },
+      {
+        "path": "model/config.json",
+        "size": 248,
+        "sha256": "ed00cd78632a7309dc8c8944bd95cfb07b3a0595d4bcc4dd1725c49c7ba3008c"
+      },
+      {
+        "path": "model/model.bin",
+        "size": 80298997,
+        "sha256": "a68dd89c9d226e09cef948a01ded22bede8858326af89644f1b715efe39e7018"
+      },
+      {
+        "path": "model/shared_vocabulary.json",
+        "size": 1128373,
+        "sha256": "889fd971922b90b1c33cb1af1596f873820c04e6ad0277248ac84e86966a8b2d"
+      },
+      {
+        "path": "README.md",
+        "size": 404,
+        "sha256": "0005c86fddf2f82ae44cb6a793ffc4ec43f1498079ab4172ad575945b1b8a146"
+      },
+      {
+        "path": "sentencepiece.model",
+        "size": 777548,
+        "sha256": "7072c1746f72ca1335eadba63288f7fd938f6107ee1f83494babdae3bba47192"
+      }
+    ],
+    "size": 82205706,
+    "archiveVerification": "SHA-256 observado en adquisición HTTPS y fijado para siguientes descargas"
+  },
+  {
+    "id": "translation-pt-en",
+    "name": "Traducción pt → en",
+    "from": "pt",
+    "to": "en",
+    "license": "Ver licencia y avisos incluidos en el paquete Argos",
+    "source": "https://github.com/argosopentech/argospm-index",
+    "parts": [
+      {
+        "url": "https://argos-net.com/v1/translate-pt_en-1_9.argosmodel",
+        "kind": "translation",
+        "folder": "",
+        "sha256": "ae76df6f650895c16f2b582065014fab496755ca846ecb19fae81d51f332a38e",
+        "size": 69447231
+      }
+    ],
+    "files": [
+      {
+        "path": "metadata.json",
+        "size": 138,
+        "sha256": "997dca90f9934bbfe2b37b6cbcd12a15b358c1a6068455c0eb60c4658d4e79b9"
+      },
+      {
+        "path": "model/config.json",
+        "size": 231,
+        "sha256": "95dabd564e6abdb470e95f9106766647d8dc59e1bc2a1517d292c0cee5ca5812"
+      },
+      {
+        "path": "model/model.bin",
+        "size": 80130517,
+        "sha256": "d0baa028926f7eceb6e8bcc8d75bd9ed4184665ff1702b93d580e3e2046ddc18"
+      },
+      {
+        "path": "model/shared_vocabulary.json",
+        "size": 1119636,
+        "sha256": "ae91c6c467ea24aa26012f9d782fed742f198d41bdc8a772fdbde804129a2187"
+      },
+      {
+        "path": "README.md",
+        "size": 404,
+        "sha256": "e12a08201084ea2d67a43ef59c873ad7d5c1c63bc16fec06c5228ca67c89e5e2"
+      },
+      {
+        "path": "sentencepiece.model",
+        "size": 805638,
+        "sha256": "ef72b5438efba8ae850a8a4fc9fcb62d2b5d560cebb8d2795312e9f9ca592c8c"
+      }
+    ],
+    "size": 82056564,
+    "archiveVerification": "SHA-256 observado en adquisición HTTPS y fijado para siguientes descargas"
+  },
+  {
+    "id": "translation-en-fr",
+    "name": "Traducción en → fr",
+    "from": "en",
+    "to": "fr",
+    "license": "Ver licencia y avisos incluidos en el paquete Argos",
+    "source": "https://github.com/argosopentech/argospm-index",
+    "parts": [
+      {
+        "url": "https://argos-net.com/v1/translate-en_fr-1_9.argosmodel",
+        "kind": "translation",
+        "folder": "",
+        "sha256": "3a65ed83364f4e7b06e30f9dd823db1934899ed3ce839e63f46dc7b09dc797b4",
+        "size": 65472327
+      }
+    ],
+    "files": [
+      {
+        "path": "metadata.json",
+        "size": 134,
+        "sha256": "6faa7ac3fc7f8ba6de3a7e798bc3ae5e7286081daf8008632221a542df80796b"
+      },
+      {
+        "path": "model/config.json",
+        "size": 196,
+        "sha256": "b28e3136fc7a103e29585c10c8124849fb01d649531f58e00cbe240111560cd7"
+      },
+      {
+        "path": "model/model.bin",
+        "size": 79860078,
+        "sha256": "870d2b37c7059c3e5df9cf3aeb8af4afe1840f208af776567f9f98ebb605c1c3"
+      },
+      {
+        "path": "model/shared_vocabulary.json",
+        "size": 1112211,
+        "sha256": "528a527b3504bda364600f8bd7a2db1b0d7f82ef97a33ba0e80c289c4ae63c24"
+      },
+      {
+        "path": "README.md",
+        "size": 400,
+        "sha256": "c89aed74175841b0842c03c08282d19b6088d8ec69b7c285b167a01140f0744a"
+      },
+      {
+        "path": "sentencepiece.model",
+        "size": 778395,
+        "sha256": "173e9f493a668fe396d599e28d414a201193094e6ffd7a4678e5aab0f6d3d838"
+      }
+    ],
+    "size": 81751414,
+    "archiveVerification": "SHA-256 observado en adquisición HTTPS y fijado para siguientes descargas"
+  },
+  {
+    "id": "translation-fr-en",
+    "name": "Traducción fr → en",
+    "from": "fr",
+    "to": "en",
+    "license": "Ver licencia y avisos incluidos en el paquete Argos",
+    "source": "https://github.com/argosopentech/argospm-index",
+    "parts": [
+      {
+        "url": "https://argos-net.com/v1/translate-fr_en-1_9.argosmodel",
+        "kind": "translation",
+        "folder": "",
+        "sha256": "3b3052fee6bb1e8e8e632a26a723eb2a2c7710dfe73ba61ffd9b83e85d4f14c1",
+        "size": 66585033
+      }
+    ],
+    "files": [
+      {
+        "path": "metadata.json",
+        "size": 134,
+        "sha256": "b10f3c55823794941855b002d8056db85cb5ae19e58ceb3349f2f27461255188"
+      },
+      {
+        "path": "model/config.json",
+        "size": 196,
+        "sha256": "b28e3136fc7a103e29585c10c8124849fb01d649531f58e00cbe240111560cd7"
+      },
+      {
+        "path": "model/model.bin",
+        "size": 79860078,
+        "sha256": "12f4dd41956b8975067b710675ce0668073b4d682892a9b1c496287cecbd0802"
+      },
+      {
+        "path": "model/shared_vocabulary.json",
+        "size": 1112211,
+        "sha256": "528a527b3504bda364600f8bd7a2db1b0d7f82ef97a33ba0e80c289c4ae63c24"
+      },
+      {
+        "path": "README.md",
+        "size": 400,
+        "sha256": "e7ed6e341cd044ed20e6c65fceedf055364178146171d092a156fc3a90121046"
+      },
+      {
+        "path": "sentencepiece.model",
+        "size": 802397,
+        "sha256": "78d0e717c77053f1c4b856d8661d9cb87c64f083a35418c087b9146300e4f585"
+      }
+    ],
+    "size": 81775416,
+    "archiveVerification": "SHA-256 observado en adquisición HTTPS y fijado para siguientes descargas"
+  },
+  {
+    "id": "alignment-es",
+    "name": "Alineación de texto en español",
+    "license": "Apache-2.0 — modelo Jonatas Grosman y exportación ONNX XDcobra",
+    "source": "https://huggingface.co/XDcobra/wav2vec2-large-xlsr-53-spanish-ONNX",
+    "revision": "ce8c6ded2261a6dd5b902cbbcd46d330f7e92c37",
+    "language": "es",
+    "engine": "wav2vec2-ctc-int8",
+    "parts": [
+      {
+        "url": "https://huggingface.co/XDcobra/wav2vec2-large-xlsr-53-spanish-ONNX/resolve/ce8c6ded2261a6dd5b902cbbcd46d330f7e92c37/onnx/model_int8.onnx",
+        "kind": "file",
+        "folder": "",
+        "dest": "model.onnx",
+        "size": 355016210,
+        "sha256": "1eb8a34dd7373b48b57c924db5c5a54c3bbf58f5cc8e9cf2631820e01e393244"
+      },
+      {
+        "url": "https://huggingface.co/XDcobra/wav2vec2-large-xlsr-53-spanish-ONNX/resolve/ce8c6ded2261a6dd5b902cbbcd46d330f7e92c37/vocab.json",
+        "kind": "file",
+        "folder": "",
+        "dest": "vocab.json",
+        "size": 465,
+        "sha256": "f73651195659898d08dbeda085d13b249701b83a6731a96213597457cf6cf53f"
+      },
+      {
+        "url": "https://huggingface.co/XDcobra/wav2vec2-large-xlsr-53-spanish-ONNX/resolve/ce8c6ded2261a6dd5b902cbbcd46d330f7e92c37/config.json",
+        "kind": "file",
+        "folder": "",
+        "dest": "config.json",
+        "size": 2244,
+        "sha256": "d6d4e0ea1cf3b60dd7e79c037261be085bd3048ce1cd7267d90ae176dabc390a"
+      },
+      {
+        "url": "https://huggingface.co/XDcobra/wav2vec2-large-xlsr-53-spanish-ONNX/resolve/ce8c6ded2261a6dd5b902cbbcd46d330f7e92c37/preprocessor_config.json",
+        "kind": "file",
+        "folder": "",
+        "dest": "preprocessor_config.json",
+        "size": 262,
+        "sha256": "2c594304e9d9832162bedd5345051df29e8daf458a845cbed58c6ede23ceeae3"
+      },
+      {
+        "url": "https://huggingface.co/XDcobra/wav2vec2-large-xlsr-53-spanish-ONNX/resolve/ce8c6ded2261a6dd5b902cbbcd46d330f7e92c37/tokenizer_config.json",
+        "kind": "file",
+        "folder": "",
+        "dest": "tokenizer_config.json",
+        "size": 1078,
+        "sha256": "6d87b54769a085d38bad8d6538ac15eb83719160c4d39728cc5e698c6a0c0498"
+      },
+      {
+        "url": "https://huggingface.co/XDcobra/wav2vec2-large-xlsr-53-spanish-ONNX/resolve/ce8c6ded2261a6dd5b902cbbcd46d330f7e92c37/LICENSE",
+        "kind": "file",
+        "folder": "",
+        "dest": "LICENSE",
+        "size": 12624,
+        "sha256": "609e2cb599f84aaa41d8ef29d8fdb04d164fab22e8d9292ca34a599d0f56a338"
+      }
+    ],
+    "files": [
+      {
+        "path": "model.onnx",
+        "size": 355016210,
+        "sha256": "1eb8a34dd7373b48b57c924db5c5a54c3bbf58f5cc8e9cf2631820e01e393244"
+      },
+      {
+        "path": "vocab.json",
+        "size": 465,
+        "sha256": "f73651195659898d08dbeda085d13b249701b83a6731a96213597457cf6cf53f"
+      },
+      {
+        "path": "config.json",
+        "size": 2244,
+        "sha256": "d6d4e0ea1cf3b60dd7e79c037261be085bd3048ce1cd7267d90ae176dabc390a"
+      },
+      {
+        "path": "preprocessor_config.json",
+        "size": 262,
+        "sha256": "2c594304e9d9832162bedd5345051df29e8daf458a845cbed58c6ede23ceeae3"
+      },
+      {
+        "path": "tokenizer_config.json",
+        "size": 1078,
+        "sha256": "6d87b54769a085d38bad8d6538ac15eb83719160c4d39728cc5e698c6a0c0498"
+      },
+      {
+        "path": "LICENSE",
+        "size": 12624,
+        "sha256": "609e2cb599f84aaa41d8ef29d8fdb04d164fab22e8d9292ca34a599d0f56a338"
+      }
+    ],
+    "size": 355032883,
+    "archiveVerification": "Revisión inmutable, SHA-256 LFS del peso y SHA-256 de los archivos de configuración"
+  }
+]

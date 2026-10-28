@@ -1,0 +1,13 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+import {randomUUID} from 'node:crypto';
+import {discoverTools} from '../src/tools.mjs';
+import {probe} from '../src/media.mjs';
+import {createProject} from '../src/project.mjs';
+import {transcribeProject} from '../src/asr.mjs';
+import {exportSequence} from '../src/sequence.mjs';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),out=path.join(root,'test-results','v2'),tools=await discoverTools(root),p=createProject(await probe(path.join(root,'test-results','muestra-voz.mp4'),tools));p.exportRange={start:0,end:3};
+const result=await transcribeProject(p,{tools:{...tools,whisperGpu:path.join(out,'no-runtime-'+randomUUID()+'.exe')},modelRoot:path.join(root,'models'),jobsRoot:path.join(out,'fallback-jobs'),model:'base',language:'en',align:true,acceleration:'gpu'});assert.equal(result.transcription.provider,'CPU');assert.ok(result.transcription.fallback);
+const video=await exportSequence(result,path.join(out,'fallback-cpu.mp4'),{tools,jobsRoot:path.join(out,'fallback-jobs'),acceleration:'gpu',hardware:{videoEncoder:'autosubsco_test_invalid_encoder'}});assert.equal(video.encoder,'libx264');assert.ok(video.fallback);const report={passed:true,asrProvider:result.transcription.provider,renderEncoder:video.encoder,controlledFaults:['Ruta de runtime Whisper GPU inexistente','Codificador GPU deliberadamente no válido'],result:'Ambos trabajos finalizaron mediante CPU.'};await fs.writeFile(path.join(out,'fallback-verification.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));

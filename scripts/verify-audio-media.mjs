@@ -1,0 +1,20 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+import {discoverTools} from '../src/tools.mjs';
+import {run} from '../src/process.mjs';
+import {probe} from '../src/media.mjs';
+import {createProject,addMedia} from '../src/project.mjs';
+import {analyzeAndDuck} from '../src/audio-processing.mjs';
+import {editAudioMix,editVolumePoint} from '../src/audio-edit.mjs';
+import {splitSelection} from '../src/precision.mjs';
+import {sequenceAudio} from '../src/sequence.mjs';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),out=path.join(root,'test-results','v6'),tools=await discoverTools(root);await fs.mkdir(out,{recursive:true});
+for(const[id,expression]of[['voice','0.15*sin(2*PI*880*t)*if(between(t,2,4)+between(t,6,7),1,0)'],['music','0.12*sin(2*PI*220*t)']])await run(tools.ffmpeg,['-hide_banner','-nostdin','-loglevel','error','-y','-f','lavfi','-i',`aevalsrc=exprs='${expression}':s=48000:d=8`,'-c:a','pcm_s16le',path.join(out,id+'.wav')]);
+let p=createProject(await probe(path.join(out,'voice.wav'),tools));p=addMedia(p,await probe(path.join(out,'music.wav'),tools),{audio:true});const [voice,music]=p.timeline.clips;p=await analyzeAndDuck(p,{targetId:music.id,voiceIds:[voice.id],thresholdDb:-35,depthDb:20,attack:.2,release:.5},{tools});const file=path.join(out,'automatic-ducking.wav');await sequenceAudio(p,file,{tools});
+function pcm(buffer){let at=12;while(at+8<=buffer.length){const id=buffer.toString('ascii',at,at+4),size=buffer.readUInt32LE(at+4);if(id==='data'){const samples=new Float64Array(Math.floor(Math.min(size,buffer.length-at-8)/2));for(let i=0;i<samples.length;i++)samples[i]=buffer.readInt16LE(at+8+i*2)/32768;return samples;}at+=8+size+(size%2);}throw Error('WAV sin datos.');}
+function amplitude(samples,hz,start,length=.5){let re=0,im=0,count=0;for(let i=Math.round(start*16000);i<Math.round((start+length)*16000);i++){const phase=2*Math.PI*hz*i/16000;re+=samples[i]*Math.cos(phase);im+=samples[i]*Math.sin(phase);count++;}return 2*Math.hypot(re,im)/count;}
+const samples=pcm(await fs.readFile(file)),before=amplitude(samples,220,1),during=amplitude(samples,220,2.5),after=amplitude(samples,220,5),voiceDuring=amplitude(samples,880,2.5);assert.ok(during/before>.08&&during/before<.12,JSON.stringify({before,during}));assert.ok(after/before>.95&&after/before<1.05);assert.ok(voiceDuring>.05);assert.equal(p.timeline.clips[0].audioMix.activity.regions.length,2);
+let envelope=createProject(await probe(path.join(out,'music.wav'),tools)),id=envelope.timeline.clips[0].id;envelope=editAudioMix(envelope,id,{fadeIn:2,fadeOut:2});envelope=editVolumePoint(envelope,'upsert',id,{time:0,gain:.5});envelope=editVolumePoint(envelope,'upsert',id,{time:8,gain:.5});const originalFile=path.join(out,'volume-envelope.wav'),splitFile=path.join(out,'volume-envelope-split.wav');await sequenceAudio(envelope,originalFile,{tools});await sequenceAudio(splitSelection(envelope,[id],4),splitFile,{tools});const original=pcm(await fs.readFile(originalFile)),split=pcm(await fs.readFile(splitFile));assert.equal(split.length,original.length);let difference=0;for(let i=0;i<original.length;i++)difference=Math.max(difference,Math.abs(original[i]-split[i]));assert.ok(difference<=2/32768,'El corte cambió el audio: '+difference);const fade=amplitude(original,220,.45,.1),plateau=amplitude(original,220,3,.5);assert.ok(fade/plateau>.22&&fade/plateau<.28);
+await fs.writeFile(path.join(out,'mix-demo.autosubsco.json'),JSON.stringify(p,null,2));const report={passed:true,cpu:true,activityRegions:p.timeline.clips[0].audioMix.activity.regions,automaticDucking:true,requestedReductionDb:20,measuredReductionDb:20*Math.log10(before/during),voicePreserved:true,recovery:true,fadeRatio:fade/plateau,splitMaxSampleDifference:difference,sampleRate:16000};await fs.writeFile(path.join(out,'audio-media-verification.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));

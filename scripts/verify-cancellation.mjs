@@ -1,0 +1,11 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+import {randomUUID} from 'node:crypto';
+import {discoverTools} from '../src/tools.mjs';
+import {validateProject} from '../src/project.mjs';
+import {exportSequence} from '../src/sequence.mjs';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),out=path.join(root,'test-results','v2'),tools=await discoverTools(root),p=validateProject(JSON.parse(await fs.readFile(path.join(out,'sequence.autosubsco.json'),'utf8'))),destination=path.join(out,'cancelled-'+randomUUID()+'.mp4'),before=new Set(await fs.readdir(out)),controller=new AbortController();let started=false;
+await assert.rejects(exportSequence(p,destination,{tools,jobsRoot:path.join(out,'cancel-jobs'),signal:controller.signal,progress:value=>{if(value.stage==='render'&&!started){started=true;setTimeout(()=>controller.abort(),60);}}}),/cancelada/i);
+assert.ok(started);assert.equal(await fs.stat(destination).then(()=>true).catch(()=>false),false);const partials=(await fs.readdir(out)).filter(name=>!before.has(name)&&name.endsWith('.partial.mp4'));assert.equal(partials.length,0);const result={passed:true,realRenderStarted:started,cancelled:true,noFinalFile:true,noNewPartialFiles:true};await fs.writeFile(path.join(out,'cancellation-verification.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));
