@@ -1,3 +1,4 @@
+import {audioEnabled} from './track-state.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -29,7 +30,7 @@ export async function recognizeRange(project,options){
  const p=validateProject(project),{tools,modelRoot,jobsRoot,signal,progress=()=>{}}=options,model=MODELS.find(m=>m.id===(options.model??'small'));if(!model)throw new Error('Modelo no permitido.');const range=options.range??p.exportRange,acceleration=validateAcceleration(options.acceleration),language=options.language??'es',align=options.align!==false;
  if(!Number.isFinite(range.start)||!Number.isFinite(range.end)||range.start<0||range.end>durationOf(p)+.01||range.end-range.start<.1)throw new Error('Rango de transcripción inválido.');
  if(!['es','auto','en','pt','fr','de','it'].includes(language))throw new Error('Idioma no permitido.');
- if(!p.timeline.clips.some(c=>!c.muted&&c.volume>0&&p.assets.find(m=>m.id===c.mediaId)?.hasAudio))throw new Error('No hay audio audible en la secuencia.');
+ if(!p.timeline.clips.some(c=>audioEnabled(p,c)&&!c.muted&&c.volume>0&&p.assets.find(m=>m.id===c.mediaId)?.hasAudio))throw new Error('No hay audio audible en la secuencia.');
  progress({stage:'verify',message:`Verificando ${model.name}`,percent:null});const weights=await verifyModel(modelRoot,model.id,signal),job=path.join(jobsRoot,randomUUID());await fs.mkdir(job,{recursive:true});const wav=path.join(job,'audio.wav'),started=Date.now();let log='',engine,used='CPU',fallback=null,raw,cues;
  try{progress({stage:'audio',message:options.preferVocals?'Preparando audio con prioridad a la voz separada':'Preparando audio de la secuencia',percent:null});await sequenceAudio(audioForRecognition(p,options.preferVocals),wav,{tools,range,signal});const began=Date.now();
  if(model.engine==='onnx'){

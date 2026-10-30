@@ -1,0 +1,4 @@
+export const VIEWPORT_DEFAULTS=Object.freeze({left:0,top:0,right:0,bottom:0,fit:'contain'});
+export function validateViewport(input){const v={...VIEWPORT_DEFAULTS,...input};for(const k of ['left','top','right','bottom'])if(!Number.isFinite(v[k])||v[k]<0||v[k]>95)throw Error('Recorte fuera de rango.');if(v.left+v.right>95||v.top+v.bottom>95||!['contain','cover'].includes(v.fit))throw Error('El recorte debe conservar al menos un 5 % de la imagen.');return v;}
+export const croppedAspect=(m,c)=>{const v=validateViewport(c.viewport);return m.height*(1-(v.top+v.bottom)/100)/(m.width*(1-(v.left+v.right)/100));};
+export function viewportGeometry(m,c,w,h){const v=validateViewport(c.viewport),cw=m.width*(1-(v.left+v.right)/100),ch=m.height*(1-(v.top+v.bottom)/100),k=(v.fit==='cover'?Math.max:Math.min)(w/cw,h/ch);return{width:m.width*k,height:m.height*k,left:(w-cw*k)/2-m.width*k*v.left/100,top:(h-ch*k)/2-m.height*k*v.top/100};}

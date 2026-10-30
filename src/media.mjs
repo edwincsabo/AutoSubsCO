@@ -15,7 +15,8 @@ export async function probe(file, tools, signal) {
   if (!Number.isFinite(duration) || duration <= 0 || (!video && !audio)) throw new Error('No se pudo leer la duración del archivo.');
   const rotation = Number(video?.side_data_list?.find(s => s.rotation !== undefined)?.rotation ?? video?.tags?.rotate ?? 0);
   const swapped = Math.abs(Math.sin(rotation * Math.PI / 180)) > .7;
-  return { ...(still?{type:'image'}:{}), id: randomUUID(), path: path.resolve(file), name: path.basename(file), duration,
+  const stat=await fs.stat(file);
+  return { modifiedAtMs:stat.mtimeMs,...(still?{type:'image'}:{}), id: randomUUID(), path: path.resolve(file), name: path.basename(file), duration,
     width: (swapped ? video?.height : video?.width) ?? 0, height: (swapped ? video?.width : video?.height) ?? 0,
     codedWidth: video?.width ?? 0, codedHeight: video?.height ?? 0, rotation, hasVideo: Boolean(video), hasAudio: Boolean(audio),
     videoCodec: video?.codec_name ?? null, audioCodec: audio?.codec_name ?? null,

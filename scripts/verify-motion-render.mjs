@@ -8,8 +8,8 @@ import {probe} from '../src/media.mjs';
 import {createProject,addMedia,editClip} from '../src/project.mjs';
 import {addKeyframe,setVisual} from '../src/studio-project.mjs';
 import {exportSequence} from '../src/sequence.mjs';
-const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),out=path.join(root,'test-results','v6'),tools=await discoverTools(root);await fs.mkdir(out,{recursive:true});
-const red=await probe(path.join(out,'red.mp4'),tools),blue=await probe(path.join(out,'blue.mp4'),tools),green=await probe(path.join(out,'green.mp4'),tools);
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),out=path.join(root,'test-results','v12','motion-render'),tools=await discoverTools(root);await fs.mkdir(out,{recursive:true});
+const red=await probe(path.join(root,'test-results','v6','red.mp4'),tools),blue=await probe(path.join(root,'test-results','v6','blue.mp4'),tools),green=await probe(path.join(root,'test-results','v6','green.mp4'),tools);
 let serial=0;
 async function pixel(video,time,x,y){const file=path.join(out,`motion-pixel-${serial++}.rgb`);await run(tools.ffmpeg,['-hide_banner','-nostdin','-loglevel','error','-y','-ss',String(time),'-i',video,'-vf',`format=rgb24,crop=1:1:${x}:${y}`,'-frames:v','1','-f','rawvideo',file]);return[...await fs.readFile(file)];}
 let p=createProject(red);p=addMedia(p,green,{layer:true});const layer=p.timeline.clips.at(-1);p=setVisual(p,layer.id,{transform:{x:20,y:20,scale:.25,rotation:0,opacity:0}});p=addKeyframe(p,layer.id,0,{x:20,y:20,scale:.25,rotation:0,opacity:0});p=addKeyframe(p,layer.id,1,{x:40,y:20,scale:.5,rotation:90,opacity:1});

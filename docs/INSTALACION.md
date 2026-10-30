@@ -2,6 +2,10 @@
 
 Node.js 24 se utiliza para desarrollo; la inferencia usa un Python privado dentro del proyecto. Estos comandos no instalan Python globalmente ni cambian la seguridad de Windows.
 
+## Preparación reunida
+
+Con Node.js 24 instalado, abre **Preparar AutoSubsCO.cmd**. Comprueba las dependencias y prepara las que falten; puede necesitar descargas. Después utiliza **Probar AutoSubsCO.cmd**. Para una comprobación sin instalar, ejecuta `node scripts/prepare-app.mjs --check`. FFmpeg se puede proporcionar manualmente como se describe abajo.
+
 ## Dependencias
 
 Desde la carpeta del repositorio:

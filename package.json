@@ -1,6 +1,6 @@
 {
   "name": "autosubsco",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "description": "Editor local para Windows con montaje multimedia, títulos, audio y subtítulos automáticos.",
   "type": "module",
@@ -32,7 +32,15 @@
     "test:alignment-media": "node scripts/verify-alignment-media.mjs",
     "test:alignment-core": "tools/python/python.exe -m unittest discover -s tests -p alignment_worker_test.py",
     "test:replace-ui": "node scripts/verify-find-replace-ui.mjs",
-    "test:graphics": "node scripts/verify-graphics-ui.mjs"
+    "test:graphics": "node scripts/verify-graphics-ui.mjs",
+    "setup:app": "node scripts/prepare-app.mjs",
+    "test:workbench": "node scripts/verify-workbench-ui.mjs",
+    "test:workbench-media": "node scripts/verify-workbench-media.mjs",
+    "test:background": "node scripts/verify-background-ui.mjs",
+    "test:long": "node scripts/verify-long-projects.mjs",
+    "test:long-ui": "node scripts/verify-long-ui.mjs",
+    "test:streaming": "tools/python/python.exe -m unittest discover -s tests -p onnx_streaming_test.py",
+    "package:folder": "electron-builder --win --x64 --dir --config.electronDist=node_modules/electron/dist --config.win.signAndEditExecutable=false --publish never"
   },
   "devDependencies": {
     "electron": "44.9.0",
@@ -52,12 +60,16 @@
       "ui/**",
       "package.json",
       "README.md",
-      "docs/**",
       "THIRD_PARTY_NOTICES.md",
       "licenses/**",
       "LICENSE",
       "NOTICE",
-      "USO_NO_COMERCIAL.md"
+      "USO_NO_COMERCIAL.md",
+      "docs/INSTALACION.md",
+      "docs/PRUEBAS.md",
+      "docs/MEJORAS_0_12.md",
+      "docs/VERIFICACION_0_12.md",
+      "docs/images/editor.png"
     ],
     "extraResources": [
       {
@@ -69,7 +81,10 @@
           "!python-3.12.10-embed-amd64.zip",
           "!**/*.part",
           "!**/__pycache__/**",
-          "!python/get-pip.py"
+          "!python/get-pip.py",
+          "!provenance.json",
+          "!python/AUTOSUBSCO-PROVENANCE.json",
+          "!python/Scripts/**"
         ]
       }
     ],

@@ -5,7 +5,7 @@ import {randomUUID,createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {_electron as electron} from 'playwright-core';
 import {evaluateTransform} from '../src/motion.mjs';
-const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),out=path.join(root,'test-results',process.env.AUTOSUBSCO_TEST_RUN??'v11'),workspace=path.join(out,'layout-ui-'+randomUUID());
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),out=path.join(root,'test-results',process.env.AUTOSUBSCO_TEST_RUN??'v12'),workspace=path.join(out,'layout-ui-'+randomUUID());
 await fs.mkdir(workspace,{recursive:true});
 const userFile=path.join(root,'workspace-desarrollo','Prueba_AutoSubsCO_0_6.autosubsco.json');
 const userBytes=await fs.readFile(userFile),hash=b=>createHash('sha256').update(b).digest('hex');
@@ -25,7 +25,7 @@ async function settle(){await page.evaluate(()=>new Promise(r=>requestAnimationF
 async function resize(w,h){await app.evaluate(({BrowserWindow},size)=>BrowserWindow.getAllWindows()[0].setContentSize(...size),[w,h]);await settle();}
 async function seek(time){const range=await page.locator('#ruler').boundingBox(),s=await state(),duration=Math.max(...s.project.timeline.clips.map(c=>c.timelineStart+c.sourceOut-c.sourceIn));await page.locator('#ruler').click({position:{x:range.width*time/duration,y:10}});await settle();}
 async function geometry(label){
- const p=(await state()).project,s=await page.evaluate(()=>({time:document.querySelector('#current-time').textContent.split(':').reduce((a,n)=>a*60+Number(n),0),frame:{w:document.querySelector('#video-frame').clientWidth,h:document.querySelector('#video-frame').clientHeight},layers:[...document.querySelectorAll('.studio-video-layer')].filter(n=>n.style.display!=='none').map(n=>({id:n.dataset.clipId,w:parseFloat(n.style.width),h:parseFloat(n.style.height),x:parseFloat(n.style.left),y:parseFloat(n.style.top),opacity:parseFloat(n.style.opacity),current:n.currentTime,paused:n.paused})),caption:parseFloat(document.querySelector('#caption-overlay').style.fontSize)}));
+ const p=(await state()).project,s=await page.evaluate(()=>({time:document.querySelector('#current-time').textContent.split(':').reduce((a,n)=>a*60+Number(n),0),frame:{w:document.querySelector('#video-frame').clientWidth,h:document.querySelector('#video-frame').clientHeight},layers:[...document.querySelectorAll('.studio-layer-box')].filter(n=>n.style.display!=='none').map(n=>({id:n.dataset.clipId,w:parseFloat(n.style.width),h:parseFloat(n.style.height),x:parseFloat(n.style.left),y:parseFloat(n.style.top),opacity:parseFloat(n.style.opacity),current:n.querySelector('video')?.currentTime,paused:n.querySelector('video')?.paused})),caption:parseFloat(document.querySelector('#caption-overlay').style.fontSize)}));
  for(const layer of s.layers){const c=p.timeline.clips.find(c=>c.id===layer.id),m=p.assets.find(m=>m.id===c.mediaId),v=evaluateTransform(c,s.time-c.timelineStart);assert.ok(Math.abs(layer.w-s.frame.w*v.scale)<1.1,label+' ancho de capa');assert.ok(Math.abs(layer.h-(c.trackId==='video-1'?s.frame.h*v.scale:s.frame.w*v.scale*m.height/m.width))<1.1,label+' alto de capa');assert.ok(Math.abs(layer.x-s.frame.w*v.x/100)<1.1,label+' posición X');assert.ok(Math.abs(layer.y-s.frame.h*v.y/100)<1.1,label+' posición Y');}
  assert.ok(Math.abs(s.caption-p.style.fontSize*s.frame.h/p.sequence.height)<.1,label+' subtítulos');measurements.push({label,...s});return s;
 }
@@ -65,3 +65,5 @@ try{
  await fs.writeFile(path.join(out,'layout-ui-verification.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({...report,measurements:measurements.length},null,2));
 }catch(e){if(page){await page.screenshot({path:path.join(out,'layout-error.png')}).catch(()=>{});console.error(await page.evaluate(()=>({toast:document.querySelector('#toast')?.textContent,context:document.querySelector('.inspector')?.dataset.context,errors:document.body.textContent.slice(-500)})).catch(()=>({})));}console.error(errors);throw e;
 }finally{await app.evaluate(({dialog})=>{dialog.showMessageBox=async()=>({response:1});}).catch(()=>{});await app.close().catch(()=>{});}
+
+async function waitQueuedExport(){const deadline=Date.now()+120000;while(Date.now()<deadline){const s=await state(),rows=(s.jobs??[]).filter(r=>r.kind==='export');if(rows.some(r=>['failed','cancelled'].includes(r.status)))throw Error(rows.find(r=>['failed','cancelled'].includes(r.status)).error??'Exportación cancelada');if(rows.length&&rows.every(r=>r.status==='done'))return;await new Promise(r=>setTimeout(r,50));}throw Error('La exportación en cola no terminó.');}

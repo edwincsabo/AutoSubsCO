@@ -5,6 +5,16 @@ const invoke = async (channel, ...args) => {
   return result.value;
 };
 contextBridge.exposeInMainWorld('autosubs', Object.freeze({
+  clipboard: (action,ids,at) => invoke('clipboard',action,ids,at),
+  trackState: (id,value) => invoke('track-state',id,value),
+  viewport: (id,value) => invoke('viewport',id,value),
+  jobs: () => invoke('jobs'),
+  enqueueJob: (kind,value) => invoke('enqueue-job',kind,value),
+  jobAction: (action,id) => invoke('job-action',action,id),
+  exportProfile: (action,value) => invoke('export-profile',action,value),
+  deliveryRange: (action,value) => invoke('delivery-range',action,value),
+  exportBatch: (ids,modes) => invoke('export-batch',ids,modes),
+  onJobs: callback => { const listener=(_,rows)=>callback(rows);ipcRenderer.on('jobs-changed',listener);return()=>ipcRenderer.removeListener('jobs-changed',listener);},
   state: () => invoke('state'),
   importGraphic: options => invoke('import-graphic',options),
   title: (id,value,png,options) => invoke('title',id,value,png,options),
